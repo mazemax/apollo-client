@@ -46,4 +46,9 @@ export {
   canonicalStringify,
 } from './inmemory/object-canon';
 
+export {
+  FragmentRegistryAPI,
+  createFragmentRegistry,
+} from './inmemory/fragmentRegistry';
+
 export * from './inmemory/types';
