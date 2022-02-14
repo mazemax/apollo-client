@@ -1,4 +1,4 @@
-import { SelectionSetNode } from 'graphql';
+import { DocumentNode, FragmentDefinitionNode, SelectionSetNode } from 'graphql';
 
 import {
   NormalizedCache,
@@ -6,6 +6,7 @@ import {
 } from './types';
 
 import { KeyFieldsContext } from './policies';
+import { FragmentRegistryAPI } from './fragmentRegistry';
 
 import {
   Reference,
@@ -18,11 +19,17 @@ import {
   shouldInclude,
   isNonNullObject,
   compact,
+  FragmentMap,
+  FragmentMapFunction,
+  createFragmentMap,
+  getFragmentDefinitions,
 } from '../../utilities';
 
 export const {
   hasOwnProperty: hasOwn,
 } = Object.prototype;
+
+export const isArray: (a: any) => a is any[] | readonly any[] = Array.isArray;
 
 export function defaultDataIdFromObject(
   { __typename, id, _id }: Readonly<StoreObject>,
@@ -120,4 +127,24 @@ export function makeProcessedFieldsMerger() {
   return new DeepMerger;
 }
 
-export const isArray = (a: any): a is any[] | readonly any[] => Array.isArray(a)
+export function extractFragmentContext(
+  document: DocumentNode,
+  fragments?: FragmentRegistryAPI,
+): {
+  fragmentMap: FragmentMap;
+  lookupFragment: FragmentMapFunction;
+} {
+  // FragmentMap consisting only of fragments defined directly in document, not
+  // including other fragments registered in the FragmentRegistry.
+  const fragmentMap = createFragmentMap(getFragmentDefinitions(document));
+  return {
+    fragmentMap,
+    lookupFragment(name) {
+      let def: FragmentDefinitionNode | null = fragmentMap[name];
+      if (!def && fragments) {
+        def = fragments.lookup(name);
+      }
+      return def || null;
+    },
+  };
+}
